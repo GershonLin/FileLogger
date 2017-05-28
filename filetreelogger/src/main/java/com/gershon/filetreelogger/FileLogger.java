@@ -36,6 +36,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class FileLogger {
 
@@ -45,6 +46,9 @@ public class FileLogger {
     private int availableProcessors = 1;
     private final int FILE_MAX_LENGTH = 10 * 1024 * 1024;
     private final String[] priorityLevel = new String[]{"V", "D", "I", "W", "E", "A"};
+
+    private final ReentrantLock lock = new ReentrantLock();
+    private volatile boolean memoryEmpty = true;
 
     private FileLogger(Context context) {
         this.context = context;
@@ -87,6 +91,9 @@ public class FileLogger {
     }
 
     private void moveLogFile() {
+        if (memoryEmpty) {
+            return;
+        }
         File memoryDir = Utils.getMemoryLogDir(context);
         try {
             if (memoryDir.exists() && memoryDir.isDirectory()) {
@@ -108,22 +115,30 @@ public class FileLogger {
     }
 
     void logToFile(int priority, String tag, String message, Throwable throwable) {
-        if (Build.VERSION.SDK_INT >= 23) {
-            boolean permission = PackageManager.PERMISSION_GRANTED
-                    == ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            if (Utils.isSDCardAvailible() && permission) {
+        lock.lock();
+        try {
+            if (Build.VERSION.SDK_INT >= 23) {
+                boolean permission = PackageManager.PERMISSION_GRANTED
+                        == ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                if (Utils.isSDCardAvailible() && permission) {
+                    moveLogFile();
+                    writeToSDCard(priority, tag, message, throwable);
+                    memoryEmpty = true;
+                } else {
+                    memoryEmpty = false;
+                    writeToMemory(priority, tag, message, throwable);
+                }
+            } else if (Utils.isSDCardAvailible()) {
                 moveLogFile();
                 writeToSDCard(priority, tag, message, throwable);
+                memoryEmpty = true;
             } else {
                 writeToMemory(priority, tag, message, throwable);
+                memoryEmpty = false;
             }
-        } else {
-            if (Utils.isSDCardAvailible()) {
-                moveLogFile();
-                writeToSDCard(priority, tag, message, throwable);
-            } else {
-                writeToMemory(priority, tag, message, throwable);
-            }
+        } catch (Exception e) {
+        } finally {
+            lock.unlock();
         }
     }
 
