@@ -1,5 +1,5 @@
 /**
- * Project:  nagini
+ * Project:  FileLogger
  * Filename: Utils.java
  *
  * Created by GuiSen Lin on 2017/5/26.
