@@ -1,5 +1,5 @@
 /**
- * Project:  FileLogger
+ * Project:  nagini
  * Filename: Utils.java
  *
  * Created by GuiSen Lin on 2017/5/26.
@@ -22,8 +22,8 @@ public class Utils {
 
     private static String logFileName = null;
     private static final String LOG_DIRECTORY_NAME = "log";
-    public static final String DIAGONAL_BAR = "/";
-    public static final String LINE_SEPARATOR  = TextUtils.isEmpty(System.getProperty("line.separator")) ? "\n" : System.getProperty("line.separator");
+    static final String DIAGONAL_BAR = "/";
+    static final String LINE_SEPARATOR  = TextUtils.isEmpty(System.getProperty("line.separator")) ? "\n" : System.getProperty("line.separator");
 
     public static boolean isSDCardAvailible() {
         String state = Environment.getExternalStorageState();
@@ -73,17 +73,19 @@ public class Utils {
 
     }
 
-    public static String getLogFileName(Context context) {
+    //simple-filename: log_2017-05-27.txt
+    public static String getLogFileName(Context context, boolean toSDCard) {
         if (TextUtils.isEmpty(logFileName)) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
-            File logFile = new File(getLogDir(context), "log_" + dateFormat.format(System.currentTimeMillis()) + ".txt");
+            File logFile = toSDCard ? new File(getSDCardLogDir(context), "log_" + dateFormat.format(System.currentTimeMillis()) + ".txt")
+                    : new File(getMemoryLogDir(context), "log_" + dateFormat.format(System.currentTimeMillis()) + ".txt");
             logFileName = logFile.getAbsolutePath();
         }
         return logFileName;
     }
 
     private static String getAppName(Context context) {
-        String appName = "sunCity";
+        String appName = "Nagini";
         try {
             PackageInfo pinfo = context.getPackageManager().getPackageInfo(
                     context.getPackageName(), PackageManager.GET_CONFIGURATIONS);
@@ -96,7 +98,7 @@ public class Utils {
         return appName;
     }
 
-    public static File getLogDir(Context context) {
+    public static File getSDCardLogDir(Context context) {
         if (!isSDCardAvailible()) {
             return null;
         }
@@ -106,6 +108,14 @@ public class Utils {
         return sub;
     }
 
+    public static File getMemoryLogDir(Context context) {
+        File dir = new File(context.getFilesDir().getPath());
+        File sub = new File(dir, LOG_DIRECTORY_NAME);
+        sub.mkdirs();
+        return sub;
+    }
+
+    //递归删除 文件/目录
     public static boolean delete(File file) {
         if (file == null) {
             return false;

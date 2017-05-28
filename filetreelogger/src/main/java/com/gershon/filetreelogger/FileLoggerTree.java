@@ -1,5 +1,5 @@
 /**
- * Project:  FileLogger
+ * Project:  nagini
  * Filename: FileLoggerTree.java
  *
  * Created by GuiSen Lin on 2017/5/26.
@@ -14,14 +14,18 @@ import timber.log.Timber;
 
 public class FileLoggerTree extends Timber.Tree {
 
-    private static Context context;
-    private static int logPoiority;
-    private static int logRetentionDays;
+    private Context context;
+    private int logPriority;
+    private static int logRetentionDays = 7;
 
-    public static void init(Context appContext, int poiority, int retentionDays) {
+    public FileLoggerTree(Context appContext, int priority, int retentionDays) {
         context = appContext;
-        logPoiority = poiority;
+        logPriority = priority;
         logRetentionDays = retentionDays;
+    }
+
+    public static int getLogRetentionDays() {
+        return logRetentionDays;
     }
 
     @Override
@@ -30,17 +34,17 @@ public class FileLoggerTree extends Timber.Tree {
             return;
         }
 
-        if (priority <= logPoiority) {
+        if (priority < logPriority) {
             return;
         }
 
-        FileLogger.log(context, priority, tag, message);
+        LoggerManager.log(context, priority, tag, message);
 
         if (throwable != null) {
             if (priority == Log.ERROR) {
-                FileLogger.logError(context, throwable);
+                LoggerManager.logError(context, throwable);
             } else if (priority == Log.WARN) {
-                FileLogger.logWarning(context, throwable);
+                LoggerManager.logWarning(context, throwable);
             }
         }
     }
